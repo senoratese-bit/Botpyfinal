@@ -2,6 +2,7 @@ import json
 import os
 import asyncio
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from telegram import Bot, Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 
@@ -9,6 +10,8 @@ BOT_TOKEN = "8442204653:AAHwUFaMToLVyuaUIxoQn8vd64kyCUVZytg"
 ADMIN_ID = 6706047006
 
 app = Flask(__name__)
+CORS(app)  # ← РАЗРЕШАЕМ ЗАПРОСЫ С ДРУГИХ ДОМЕНОВ
+
 application = Application.builder().token(BOT_TOKEN).build()
 bot = application.bot
 
@@ -16,7 +19,6 @@ bot = application.bot
 BALANCE_FILE = 'balances.json'
 
 def load_balances():
-    """Загружает балансы из файла"""
     try:
         with open(BALANCE_FILE, 'r') as f:
             return json.load(f)
@@ -24,7 +26,6 @@ def load_balances():
         return {}
 
 def save_balances(balances):
-    """Сохраняет балансы в файл"""
     with open(BALANCE_FILE, 'w') as f:
         json.dump(balances, f)
 
@@ -81,20 +82,20 @@ def webhook():
 
 @app.route('/api/balance/<user_id>')
 def get_balance(user_id):
-    """Получить баланс пользователя"""
     balance = balances.get(str(user_id), 0)
     return jsonify({"balance": balance})
 
 @app.route('/api/balance/<user_id>/set/<int:amount>')
 def set_balance(user_id, amount):
-    """Установить баланс напрямую (для теста)"""
     balances[str(user_id)] = amount
     save_balances(balances)
     return jsonify({"status": "ok", "balance": amount})
 
-@app.route('/api/admin/deposit', methods=['POST'])
+@app.route('/api/admin/deposit', methods=['POST', 'OPTIONS'])
 def admin_deposit():
-    """Эндпоинт для админ-панели (прямое начисление)"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         data = request.get_json()
         admin_id = data.get('adminId')
