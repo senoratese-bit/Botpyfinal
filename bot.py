@@ -7,10 +7,10 @@ from telegram import Bot, Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 
 BOT_TOKEN = "8442204653:AAHwUFaMToLVyuaUIxoQn8vd64kyCUVZytg"
-ADMIN_ID = 6706047006
+ADMIN_IDS = [6706047006, 5595239245]  # ← Два админа
 
 app = Flask(__name__)
-CORS(app)  # ← РАЗРЕШАЕМ ЗАПРОСЫ С ДРУГИХ ДОМЕНОВ
+CORS(app)
 
 application = Application.builder().token(BOT_TOKEN).build()
 bot = application.bot
@@ -47,7 +47,7 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
     try:
         data = json.loads(update.effective_message.web_app_data.data)
         if data.get('type') == 'admin_deposit':
-            if update.effective_user.id != ADMIN_ID:
+            if update.effective_user.id not in ADMIN_IDS:  # ← Проверка на двух админов
                 await update.message.reply_text("⛔ Доступ запрещён")
                 return
             user_id = str(data.get('targetId'))
@@ -102,7 +102,7 @@ def admin_deposit():
         target_id = str(data.get('targetId'))
         amount = int(data.get('amount', 0))
         
-        if admin_id != ADMIN_ID:
+        if admin_id not in ADMIN_IDS:  # ← Проверка на двух админов
             return jsonify({"status": "error", "error": "Access denied"}), 403
         
         balances[target_id] = balances.get(target_id, 0) + amount
